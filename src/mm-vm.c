@@ -399,10 +399,28 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
  */
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
-  //struct vm_area_struct *vma = caller->mm->mmap;
+  // struct vm_area_struct *vma = caller->mm->mmap;
 
   /* TODO validate the planned memory area is not overlapped */
+  struct vm_area_struct *vma = caller->mm->mmap;
 
+  /* Iterate over all existing VMAs in the process */
+  while (vma != NULL)
+  {
+    /* Check if the new VMA overlaps with the current VMA */
+    if ((vmaid != vma->vm_id) &&
+        ((vmastart >= vma->vm_start && vmastart < vma->vm_end) ||
+         (vmaend > vma->vm_start && vmaend <= vma->vm_end)))
+    {
+      /* The new VMA overlaps with the current VMA, so it is invalid */
+      return -1;
+    }
+
+    /* Move on to the next VMA */
+    vma = vma->vm_next;
+  }
+
+  /* The new VMA does not overlap with any existing VMA, so it is valid */
   return 0;
 }
 
@@ -442,13 +460,23 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
  *@pgn: return page number
  *
  */
-int find_victim_page(struct mm_struct *mm, int *retpgn) 
+int find_victim_page(struct mm_struct *mm, int *retpgn)
 {
   struct pgn_t *pg = mm->fifo_pgn;
 
   /* TODO: Implement the theorical mechanism to find the victim page */
+  /* Find the page to evict based on the FIFO algorithm */
+  struct pgn_t *victim_pg = pg;
+  while (victim_pg->pg_next != NULL)
+  {
+    victim_pg = victim_pg->pg_next;
+  }
 
-  free(pg);
+  /* Update the page table and return the victim page number */
+  *retpgn = victim_pg->pgn;
+  victim_pg->pgn = -1;               // mark the page as invalid
+  mm->fifo_pgn = victim_pg->pg_next; // update the head of the list
+  free(victim_pg);
 
   return 0;
 }
