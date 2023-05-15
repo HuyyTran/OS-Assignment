@@ -58,7 +58,7 @@ int pte_set_swap(uint32_t *pte, int swptyp, int swpoff)
   SETVAL(*pte, swpoff, PAGING_PTE_SWPOFF_MASK, PAGING_PTE_SWPOFF_LOBIT);
 
   return 0;
-}
+} 
 
 /* 
  * pte_set_swap - Set PTE entry for on-line page
@@ -117,6 +117,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
 
 int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct** frm_lst)
 {
+  //TODO
   int pgit, fpn;
   //struct framephy_struct *newfp_str;
 
@@ -124,8 +125,46 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   {
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
    {
-     
+      struct framephy_struct *new_frame = malloc(sizeof(struct framephy_struct));
+      if (new_frame == NULL){
+        return -1;
+      }
+
+      // Initialize the new frame 
+      new_frame->fpn = fpn;
+      new_frame->fp_next = NULL;
+      new_frame->owner = caller->mm;
+
+      // Add the frame to the frame list
+      if (*frm_lst == NULL)
+      {
+        // If the frame list is empty, assign the new frame as the head
+        *frm_lst = new_frame;
+      }
+      else
+      {
+        // Find the last frame in the list
+        struct framephy_struct *current_frame = *frm_lst;
+        while (current_frame->fp_next != NULL)
+        {
+          current_frame = current_frame->fp_next;
+        }
+        // Append the new frame to the list
+        current_frame->fp_next = new_frame;
+      }
+
    } else {  // ERROR CODE of obtaining somes but not enough frames
+      struct framephy_struct *new_frame = malloc(sizeof(struct framephy_struct));
+      if (new_frame == NULL){
+        return -1;
+      }
+      // Initialize the new frame 
+      new_frame->fpn = fpn;
+      new_frame->owner = caller->mm;
+      //Do the replacement
+      new_frame->fp_next = *frm_lst;
+      *frm_lst = new_frame;
+      
    } 
  }
 
