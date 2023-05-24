@@ -9,14 +9,20 @@
 #include <stdio.h>
 #include <pthread.h>
 
+// Synchronization tasks - comment this to turn off synchronization
+#define SYNCH
+//****************************************************************//
+
+#ifdef SYNCH
 pthread_mutex_t memphy_lock;
+#endif
 
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
  *  @mp: memphy struct
  *  @offset: offset
  */
-int MEMPHY_mv_csr(struct memphy_struct* mp, int offset)
+int MEMPHY_mv_csr(struct memphy_struct *mp, int offset)
 {
     int numstep = 0;
 
@@ -37,7 +43,7 @@ int MEMPHY_mv_csr(struct memphy_struct* mp, int offset)
  *  @addr: address
  *  @value: obtained value
  */
-int MEMPHY_seq_read(struct memphy_struct* mp, int addr, BYTE* value)
+int MEMPHY_seq_read(struct memphy_struct *mp, int addr, BYTE *value)
 {
     if (mp == NULL)
         return -1;
@@ -57,12 +63,18 @@ int MEMPHY_seq_read(struct memphy_struct* mp, int addr, BYTE* value)
  *  @addr: address
  *  @value: obtained value
  */
-int MEMPHY_read(struct memphy_struct* mp, int addr, BYTE* value)
+int MEMPHY_read(struct memphy_struct *mp, int addr, BYTE *value)
 {
+#ifdef SYNCH
     pthread_mutex_lock(&memphy_lock);
+#endif
 
-    if (mp == NULL) {
+    if (mp == NULL)
+    {
+#ifdef SYNCH
         pthread_mutex_unlock(&memphy_lock);
+#endif
+
         return -1;
     }
 
@@ -70,12 +82,16 @@ int MEMPHY_read(struct memphy_struct* mp, int addr, BYTE* value)
         *value = mp->storage[addr];
     else /* Sequential access device */
     {
-        int ret = MEMPHY_seq_read(mp, addr, value); 
+        int ret = MEMPHY_seq_read(mp, addr, value);
+#ifdef SYNCH
         pthread_mutex_unlock(&memphy_lock);
+#endif
+
         return ret;
     }
-
+#ifdef SYNCH
     pthread_mutex_unlock(&memphy_lock);
+#endif
 
     return 0;
 }
@@ -86,7 +102,7 @@ int MEMPHY_read(struct memphy_struct* mp, int addr, BYTE* value)
  *  @addr: address
  *  @data: written data
  */
-int MEMPHY_seq_write(struct memphy_struct* mp, int addr, BYTE value)
+int MEMPHY_seq_write(struct memphy_struct *mp, int addr, BYTE value)
 {
 
     if (mp == NULL)
@@ -107,12 +123,18 @@ int MEMPHY_seq_write(struct memphy_struct* mp, int addr, BYTE value)
  *  @addr: address
  *  @data: written data
  */
-int MEMPHY_write(struct memphy_struct* mp, int addr, BYTE data)
+int MEMPHY_write(struct memphy_struct *mp, int addr, BYTE data)
 {
+#ifdef SYNCH
     pthread_mutex_lock(&memphy_lock);
+#endif
 
-    if (mp == NULL) {
+    if (mp == NULL)
+    {
+#ifdef SYNCH
         pthread_mutex_unlock(&memphy_lock);
+#endif
+
         return -1;
     }
 
@@ -121,11 +143,15 @@ int MEMPHY_write(struct memphy_struct* mp, int addr, BYTE data)
     else /* Sequential access device */
     {
         int ret = MEMPHY_seq_write(mp, addr, data);
+#ifdef SYNCH
         pthread_mutex_unlock(&memphy_lock);
+#endif
+
         return ret;
     }
-
+#ifdef SYNCH
     pthread_mutex_unlock(&memphy_lock);
+#endif
 
     return 0;
 }
@@ -134,11 +160,11 @@ int MEMPHY_write(struct memphy_struct* mp, int addr, BYTE data)
  *  MEMPHY_format-format MEMPHY device
  *  @mp: memphy struct
  */
-int MEMPHY_format(struct memphy_struct* mp, int pagesz)
+int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 {
     /* This setting come with fixed constant PAGESZ */
     int numfp = mp->maxsz / pagesz;
-    struct framephy_struct* newfst, * fst;
+    struct framephy_struct *newfst, *fst;
     int iter = 0;
 
     if (numfp <= 0)
@@ -162,14 +188,20 @@ int MEMPHY_format(struct memphy_struct* mp, int pagesz)
     return 0;
 }
 
-int MEMPHY_get_freefp(struct memphy_struct* mp, int* retfpn)
+int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 {
+#ifdef SYNCH
     pthread_mutex_lock(&memphy_lock);
+#endif
 
-    struct framephy_struct* fp = mp->free_fp_list;
+    struct framephy_struct *fp = mp->free_fp_list;
 
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
+#ifdef SYNCH
         pthread_mutex_unlock(&memphy_lock);
+#endif
+
         return -1;
     }
 
@@ -180,39 +212,43 @@ int MEMPHY_get_freefp(struct memphy_struct* mp, int* retfpn)
      * No garbage collector acting then it not been released
      */
     free(fp);
-
+#ifdef SYNCH
     pthread_mutex_unlock(&memphy_lock);
+#endif
 
     return 0;
 }
 
-int MEMPHY_dump(struct memphy_struct* mp)
+int MEMPHY_dump(struct memphy_struct *mp)
 {
     /*TODO dump memphy contnt mp->storage
      *     for tracing the memory content
      */
-     /*for (int i = 0; i < mp->maxsz; i++) {
-      if (i % 64 == 0) printf("\n|%02x|", mp->storage[i]);
-      else printf("%02x|", mp->storage[i]);
-     }
-     printf("\n");*/
+    /*for (int i = 0; i < mp->maxsz; i++) {
+     if (i % 64 == 0) printf("\n|%02x|", mp->storage[i]);
+     else printf("%02x|", mp->storage[i]);
+    }
+    printf("\n");*/
 
     return 0;
 }
 
-int MEMPHY_put_freefp(struct memphy_struct* mp, int fpn)
+int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
 {
+#ifdef SYNCH
     pthread_mutex_lock(&memphy_lock);
+#endif
 
-    struct framephy_struct* fp = mp->free_fp_list;
-    struct framephy_struct* newnode = malloc(sizeof(struct framephy_struct));
+    struct framephy_struct *fp = mp->free_fp_list;
+    struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
 
     /* Create new node with value fpn */
     newnode->fpn = fpn;
     newnode->fp_next = fp;
     mp->free_fp_list = newnode;
-
+#ifdef SYNCH
     pthread_mutex_unlock(&memphy_lock);
+#endif
 
     return 0;
 }
@@ -220,11 +256,13 @@ int MEMPHY_put_freefp(struct memphy_struct* mp, int fpn)
 /*
  *  Init MEMPHY struct
  */
-int init_memphy(struct memphy_struct* mp, int max_size, int randomflg)
+int init_memphy(struct memphy_struct *mp, int max_size, int randomflg)
 {
-    mp->storage = (BYTE*)malloc(max_size * sizeof(BYTE));
+    mp->storage = (BYTE *)malloc(max_size * sizeof(BYTE));
     mp->maxsz = max_size;
+#ifdef SYNCH
     pthread_mutex_init(&memphy_lock, NULL);
+#endif
 
     MEMPHY_format(mp, PAGING_PAGESZ);
 
