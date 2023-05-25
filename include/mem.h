@@ -1,6 +1,5 @@
 #ifndef MEM_H
 #define MEM_H
-
 #include "common.h"
 
 #define RAM_SIZE	(1 << ADDRESS_SIZE)

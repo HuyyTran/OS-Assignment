@@ -368,7 +368,7 @@ int print_pgtbl(struct pcb_t* caller, uint32_t start, uint32_t end)
         struct vm_area_struct* cur_vma = get_vma_by_num(caller->mm, 0);
         end = cur_vma->vm_end;
     }
-    pgn_start = PAGING_PGN(start);
+    pgn_start = PAGING_PGN(start);// chua ro chuc nang PAGING_PGN
     pgn_end = PAGING_PGN(end);
 
     printf("\tPrint page table: %d - %d", start, end);
@@ -381,6 +381,7 @@ int print_pgtbl(struct pcb_t* caller, uint32_t start, uint32_t end)
 
     for (pgit = pgn_start; pgit < pgn_end; pgit++)
     {
+        
         printf("\t\t%08ld: %08x\n", pgit * sizeof(uint32_t), caller->mm->pgd[pgit]);
     }
 
