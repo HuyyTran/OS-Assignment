@@ -1,2 +1,2 @@
 # OS-Assignment
-This is the main code segment for this assignment.
+This is the combination of An's (mostly) + Minh's (mm-vm.c) codes. 
