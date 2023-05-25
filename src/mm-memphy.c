@@ -10,12 +10,10 @@
 #include <pthread.h>
 
 // Synchronization tasks - comment this to turn off synchronization
-#define SYNCH
+// #define SYNCH
 //****************************************************************//
 
-#ifdef SYNCH
 pthread_mutex_t memphy_lock;
-#endif
 
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
@@ -260,9 +258,8 @@ int init_memphy(struct memphy_struct *mp, int max_size, int randomflg)
 {
     mp->storage = (BYTE *)malloc(max_size * sizeof(BYTE));
     mp->maxsz = max_size;
-#ifdef SYNCH
+
     pthread_mutex_init(&memphy_lock, NULL);
-#endif
 
     MEMPHY_format(mp, PAGING_PAGESZ);
 
